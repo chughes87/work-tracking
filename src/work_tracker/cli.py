@@ -167,6 +167,36 @@ def report(ctx, period: str, fmt: str):
     console.print(md)
 
 
+@cli.command("git-import")
+@click.argument("repo_path", default=".", type=click.Path(exists=True))
+@click.option("--since", "-s", default=None, help="Import commits after this date (YYYY-MM-DD).")
+@click.option("--until", "-u", default=None, help="Import commits before this date (YYYY-MM-DD).")
+@click.option("--author", "-a", default=None, help="Filter by commit author name or email.")
+@click.option("--dry-run", is_flag=True, help="Show what would be imported without saving.")
+@click.pass_context
+def git_import(ctx, repo_path: str, since: str | None, until: str | None, author: str | None, dry_run: bool):
+    """Import git commits as work entries."""
+    cfg = ctx.obj["config"]
+    try:
+        from work_tracker.sources.git import import_commits
+
+        result = import_commits(
+            repo_path, cfg["database_url"],
+            since=since, until=until, author=author, dry_run=dry_run,
+        )
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        return
+
+    if dry_run:
+        console.print(f"[dim]Dry run:[/dim] {result['imported']} commits would be imported")
+    else:
+        console.print(
+            f"[green]Imported {result['imported']} commits[/green]"
+            + (f" [dim]({result['skipped']} duplicates skipped)[/dim]" if result["skipped"] else "")
+        )
+
+
 @cli.command()
 @click.argument("args", nargs=-1)
 @click.pass_context

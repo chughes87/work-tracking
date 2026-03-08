@@ -64,6 +64,7 @@ def query_entries(
     start: str | None = None,
     end: str | None = None,
     category: str | None = None,
+    source: str | None = None,
     limit: int | None = None,
 ) -> list[WorkEntry]:
     conn = _connect(dsn)
@@ -79,6 +80,9 @@ def query_entries(
     if category:
         clauses.append("category = %s")
         params.append(category)
+    if source:
+        clauses.append("source = %s")
+        params.append(source)
 
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     order = " ORDER BY timestamp ASC"
