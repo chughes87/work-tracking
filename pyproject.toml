@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "work-tracker"
+version = "0.1.0"
+description = "CLI tool to capture day-to-day work activities and generate summarized reports"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+ai = ["anthropic>=0.39"]
+voice = ["faster-whisper>=1.0"]
+git = ["gitpython>=3.1"]
+calendar = ["icalendar>=5.0"]
+all = ["work-tracker[ai,voice,git,calendar]"]
+dev = ["pytest>=8.0", "pytest-cov"]
+
+[project.scripts]
+wt = "work_tracker.cli:cli"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/work_tracker"]
