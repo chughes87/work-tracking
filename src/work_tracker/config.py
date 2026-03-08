@@ -11,13 +11,11 @@ except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
 
+DEFAULT_DATABASE_URL = "dbname=work_tracker port=5433"
+
 DEFAULTS = {
-    "db_path": "",  # filled dynamically from XDG_DATA_HOME
+    "database_url": "",  # filled from DATABASE_URL env or default
     "default_category": "other",
-    "ai": {
-        "model": "claude-sonnet-4-20250514",
-        "enabled": True,
-    },
     "reminder": {
         "interval_minutes": 90,
         "enabled": False,
@@ -29,10 +27,6 @@ def _xdg_config_home() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 
 
-def _xdg_data_home() -> Path:
-    return Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-
-
 def config_dir() -> Path:
     return _xdg_config_home() / "work-tracker"
 
@@ -41,18 +35,10 @@ def config_path() -> Path:
     return config_dir() / "config.toml"
 
 
-def data_dir() -> Path:
-    return _xdg_data_home() / "work-tracker"
-
-
-def default_db_path() -> Path:
-    return data_dir() / "work-tracker.db"
-
-
 def load_config() -> dict:
     """Load config from TOML file, merged with defaults."""
     cfg = _deep_copy_dict(DEFAULTS)
-    cfg["db_path"] = str(default_db_path())
+    cfg["database_url"] = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
 
     path = config_path()
     if path.exists():

@@ -126,25 +126,25 @@ class TestEdit:
 
 class TestReport:
     def test_report_empty(self, tmp_config_dir):
-        result = _invoke(["report", "today", "--no-ai"])
+        result = _invoke(["report", "today"])
         assert result.exit_code == 0
         assert "No entries found" in result.output
 
     def test_report_with_entries(self, tmp_config_dir):
         _invoke(["log", "-c", "dev", "built feature X"])
         _invoke(["log", "-c", "meeting", "team sync"])
-        result = _invoke(["report", "today", "--no-ai"])
+        result = _invoke(["report", "today"])
         assert result.exit_code == 0
         assert "Work Report" in result.output
         assert "built feature X" in result.output
         assert "team sync" in result.output
 
     def test_report_yesterday(self, tmp_config_dir):
-        result = _invoke(["report", "yesterday", "--no-ai"])
+        result = _invoke(["report", "yesterday"])
         assert result.exit_code == 0
 
     def test_report_week(self, tmp_config_dir):
-        result = _invoke(["report", "week", "--no-ai"])
+        result = _invoke(["report", "week"])
         assert result.exit_code == 0
 
 
@@ -152,7 +152,7 @@ class TestConfig:
     def test_config_show(self, tmp_config_dir):
         result = _invoke(["config"])
         assert result.exit_code == 0
-        assert "db_path" in result.output
+        assert "database_url" in result.output
         assert "default_category" in result.output
 
     def test_config_set(self, tmp_config_dir):

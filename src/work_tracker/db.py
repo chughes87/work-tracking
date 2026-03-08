@@ -1,10 +1,10 @@
-"""SQLite storage for work-tracker."""
+"""PostgreSQL storage for work-tracker."""
 
 from __future__ import annotations
 
-import sqlite3
+import psycopg2
+import psycopg2.extras
 from datetime import date, datetime, timedelta
-from pathlib import Path
 
 from work_tracker.models import WorkEntry
 
@@ -25,66 +25,68 @@ CREATE TABLE IF NOT EXISTS entries (
 """
 
 
-def _connect(db_path: str) -> sqlite3.Connection:
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    conn.execute(SCHEMA)
+def _connect(dsn: str) -> psycopg2.extensions.connection:
+    conn = psycopg2.connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute(SCHEMA)
     conn.commit()
     return conn
 
 
-def insert_entry(db_path: str, entry: WorkEntry) -> None:
-    conn = _connect(db_path)
-    conn.execute(
-        """INSERT INTO entries
-           (id, timestamp, source, category, raw_text, summary,
-            duration_minutes, metadata, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            entry.id,
-            entry.timestamp,
-            entry.source,
-            entry.category,
-            entry.raw_text,
-            entry.summary,
-            entry.duration_minutes,
-            entry.metadata,
-            entry.created_at,
-            entry.updated_at,
-        ),
-    )
+def insert_entry(dsn: str, entry: WorkEntry) -> None:
+    conn = _connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO entries
+               (id, timestamp, source, category, raw_text, summary,
+                duration_minutes, metadata, created_at, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                entry.id,
+                entry.timestamp,
+                entry.source,
+                entry.category,
+                entry.raw_text,
+                entry.summary,
+                entry.duration_minutes,
+                entry.metadata,
+                entry.created_at,
+                entry.updated_at,
+            ),
+        )
     conn.commit()
     conn.close()
 
 
 def query_entries(
-    db_path: str,
+    dsn: str,
     *,
     start: str | None = None,
     end: str | None = None,
     category: str | None = None,
     limit: int | None = None,
 ) -> list[WorkEntry]:
-    conn = _connect(db_path)
+    conn = _connect(dsn)
     clauses = []
     params: list = []
 
     if start:
-        clauses.append("timestamp >= ?")
+        clauses.append("timestamp >= %s")
         params.append(start)
     if end:
-        clauses.append("timestamp < ?")
+        clauses.append("timestamp < %s")
         params.append(end)
     if category:
-        clauses.append("category = ?")
+        clauses.append("category = %s")
         params.append(category)
 
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
     order = " ORDER BY timestamp ASC"
     lim = f" LIMIT {limit}" if limit else ""
 
-    rows = conn.execute(f"SELECT * FROM entries{where}{order}{lim}", params).fetchall()
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(f"SELECT * FROM entries{where}{order}{lim}", params)
+        rows = cur.fetchall()
     conn.close()
 
     return [
@@ -104,25 +106,29 @@ def query_entries(
     ]
 
 
-def delete_entry(db_path: str, entry_id: str) -> bool:
-    conn = _connect(db_path)
-    cur = conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+def delete_entry(dsn: str, entry_id: str) -> bool:
+    conn = _connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM entries WHERE id = %s", (entry_id,))
+        rowcount = cur.rowcount
     conn.commit()
     conn.close()
-    return cur.rowcount > 0
+    return rowcount > 0
 
 
-def update_entry(db_path: str, entry_id: str, **fields) -> bool:
+def update_entry(dsn: str, entry_id: str, **fields) -> bool:
     if not fields:
         return False
     fields["updated_at"] = datetime.now().astimezone().isoformat()
-    set_clause = ", ".join(f"{k} = ?" for k in fields)
+    set_clause = ", ".join(f"{k} = %s" for k in fields)
     vals = list(fields.values()) + [entry_id]
-    conn = _connect(db_path)
-    cur = conn.execute(f"UPDATE entries SET {set_clause} WHERE id = ?", vals)
+    conn = _connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute(f"UPDATE entries SET {set_clause} WHERE id = %s", vals)
+        rowcount = cur.rowcount
     conn.commit()
     conn.close()
-    return cur.rowcount > 0
+    return rowcount > 0
 
 
 def date_range_for(period: str) -> tuple[str, str]:

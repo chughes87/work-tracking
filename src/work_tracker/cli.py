@@ -51,7 +51,7 @@ def log(ctx, text: tuple[str, ...], category: str | None, duration: int | None):
 
     cat = category or cfg.get("default_category", "other")
     entry = WorkEntry(raw_text=raw.strip(), category=cat, duration_minutes=duration)
-    insert_entry(cfg["db_path"], entry)
+    insert_entry(cfg["database_url"], entry)
     console.print(f"[green]Logged:[/green] {entry.raw_text} [dim][{cat}][/dim]")
 
 
@@ -77,7 +77,7 @@ def entries(ctx, date_str: str | None, category: str | None, limit: int):
         end = (d + timedelta(days=1)).isoformat()
 
     items = query_entries(
-        cfg["db_path"], start=start, end=end, category=category, limit=limit
+        cfg["database_url"], start=start, end=end, category=category, limit=limit
     )
 
     if not items:
@@ -104,7 +104,7 @@ def delete(ctx, entry_id: str):
     """Delete a work entry by ID (or prefix)."""
     cfg = ctx.obj["config"]
     # Support prefix matching
-    all_entries = query_entries(cfg["db_path"])
+    all_entries = query_entries(cfg["database_url"])
     matches = [e for e in all_entries if e.id.startswith(entry_id)]
 
     if len(matches) == 0:
@@ -112,7 +112,7 @@ def delete(ctx, entry_id: str):
     elif len(matches) > 1:
         console.print(f"[red]Ambiguous prefix '{entry_id}', {len(matches)} matches[/red]")
     else:
-        delete_entry(cfg["db_path"], matches[0].id)
+        delete_entry(cfg["database_url"], matches[0].id)
         console.print(f"[green]Deleted entry {matches[0].id[:8]}[/green]")
 
 
@@ -128,7 +128,7 @@ def delete(ctx, entry_id: str):
 def edit(ctx, entry_id: str, text: str | None, category: str | None):
     """Edit a work entry by ID (or prefix)."""
     cfg = ctx.obj["config"]
-    all_entries = query_entries(cfg["db_path"])
+    all_entries = query_entries(cfg["database_url"])
     matches = [e for e in all_entries if e.id.startswith(entry_id)]
 
     if len(matches) == 0:
@@ -148,36 +148,21 @@ def edit(ctx, entry_id: str, text: str | None, category: str | None):
         console.print("[dim]Nothing to update. Use --text or --category.[/dim]")
         return
 
-    update_entry(cfg["db_path"], matches[0].id, **fields)
+    update_entry(cfg["database_url"], matches[0].id, **fields)
     console.print(f"[green]Updated entry {matches[0].id[:8]}[/green]")
 
 
 @cli.command()
 @click.argument("period", type=click.Choice(["today", "yesterday", "week"]), default="today")
-@click.option("--no-ai", is_flag=True, default=False, help="Skip AI summarization.")
 @click.option("--format", "fmt", type=click.Choice(["md", "text"]), default="md")
 @click.pass_context
-def report(ctx, period: str, no_ai: bool, fmt: str):
+def report(ctx, period: str, fmt: str):
     """Generate a report for a time period."""
     cfg = ctx.obj["config"]
     start, end = date_range_for(period)
-    items = query_entries(cfg["db_path"], start=start, end=end)
+    items = query_entries(cfg["database_url"], start=start, end=end)
 
     title = f"Work Report — {period.capitalize()}"
-
-    if not no_ai and cfg.get("ai", {}).get("enabled", True):
-        try:
-            from work_tracker.ai import summarize_entries
-
-            md = summarize_entries(items, cfg)
-            console.print(md)
-            return
-        except NotImplementedError:
-            pass
-        except Exception as e:
-            console.print(f"[yellow]AI summarization failed: {e}[/yellow]")
-            console.print("[dim]Falling back to raw report.[/dim]\n")
-
     md = render_report(items, title)
     console.print(md)
 

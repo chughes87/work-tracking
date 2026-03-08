@@ -1,29 +1,40 @@
 """Shared fixtures for work-tracker tests."""
 
 import os
-import tempfile
-from pathlib import Path
 
+import psycopg2
 import pytest
 
 from work_tracker.models import WorkEntry
 
 
+TEST_DSN = os.environ.get("TEST_DATABASE_URL", "dbname=work_tracker_test port=5433")
+
+
 @pytest.fixture
-def tmp_db(tmp_path):
-    """Return a path to a temporary SQLite database."""
-    return str(tmp_path / "test.db")
+def test_db():
+    """Provide a clean PostgreSQL test database, dropping entries table between tests."""
+    conn = psycopg2.connect(TEST_DSN)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS entries")
+    conn.close()
+    return TEST_DSN
 
 
 @pytest.fixture
 def tmp_config_dir(tmp_path, monkeypatch):
-    """Set XDG dirs to temp paths so tests don't touch real config/data."""
+    """Set XDG dirs to temp paths and DATABASE_URL to test database."""
     config_home = tmp_path / "config"
-    data_home = tmp_path / "data"
     config_home.mkdir()
-    data_home.mkdir()
     monkeypatch.setenv("XDG_CONFIG_HOME", str(config_home))
-    monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+    monkeypatch.setenv("DATABASE_URL", TEST_DSN)
+    # Clean the test database
+    conn = psycopg2.connect(TEST_DSN)
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DROP TABLE IF EXISTS entries")
+    conn.close()
     return tmp_path
 
 
