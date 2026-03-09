@@ -238,6 +238,14 @@ def git_import(ctx, repo_path: str, since: str | None, until: str | None, author
 
 
 @cli.command()
+@click.pass_context
+def gui(ctx):
+    """Launch the Work Tracker desktop GUI."""
+    from work_tracker.web import run_gui
+    run_gui()
+
+
+@cli.command()
 @click.argument("args", nargs=-1)
 @click.pass_context
 def config(ctx, args: tuple[str, ...]):

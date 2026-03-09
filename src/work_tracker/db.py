@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS entries (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS attachments (
+    id TEXT PRIMARY KEY,
+    entry_id TEXT NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    filepath TEXT NOT NULL,
+    mime_type TEXT,
+    size_bytes INTEGER,
+    created_at TEXT NOT NULL
+);
 """
 
 
@@ -66,6 +75,7 @@ def query_entries(
     category: str | None = None,
     source: str | None = None,
     limit: int | None = None,
+    order: str = "ASC",
 ) -> list[WorkEntry]:
     conn = _connect(dsn)
     clauses = []
@@ -85,7 +95,7 @@ def query_entries(
         params.append(source)
 
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
-    order = " ORDER BY timestamp ASC"
+    order = f" ORDER BY timestamp {order}"
     lim = f" LIMIT {limit}" if limit else ""
 
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -129,6 +139,49 @@ def update_entry(dsn: str, entry_id: str, **fields) -> bool:
     conn = _connect(dsn)
     with conn.cursor() as cur:
         cur.execute(f"UPDATE entries SET {set_clause} WHERE id = %s", vals)
+        rowcount = cur.rowcount
+    conn.commit()
+    conn.close()
+    return rowcount > 0
+
+
+def insert_attachment(dsn: str, attachment: dict) -> None:
+    conn = _connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO attachments
+               (id, entry_id, filename, filepath, mime_type, size_bytes, created_at)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (
+                attachment["id"],
+                attachment["entry_id"],
+                attachment["filename"],
+                attachment["filepath"],
+                attachment["mime_type"],
+                attachment["size_bytes"],
+                attachment["created_at"],
+            ),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_attachments(dsn: str, entry_id: str) -> list[dict]:
+    conn = _connect(dsn)
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            "SELECT * FROM attachments WHERE entry_id = %s ORDER BY created_at",
+            (entry_id,),
+        )
+        rows = cur.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_attachment(dsn: str, attachment_id: str) -> bool:
+    conn = _connect(dsn)
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM attachments WHERE id = %s", (attachment_id,))
         rowcount = cur.rowcount
     conn.commit()
     conn.close()

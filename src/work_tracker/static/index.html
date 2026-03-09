@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Tracker</title>
+<style>
+  :root {
+    --bg: #1a1b2e;
+    --surface: #242640;
+    --surface2: #2d2f4e;
+    --border: #3d3f5e;
+    --text: #e0e0f0;
+    --text-dim: #8888aa;
+    --accent: #7c6ef0;
+    --accent-hover: #9588ff;
+    --danger: #e05555;
+    --success: #55c07a;
+    --cat-dev: #7c6ef0;
+    --cat-meeting: #e09040;
+    --cat-review: #50b8d0;
+    --cat-planning: #e06090;
+    --cat-other: #888;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .period-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .period-tabs button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .period-tabs button.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .period-tabs button:hover:not(.active) {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 20px;
+    gap: 16px;
+  }
+
+  /* Log form */
+  .log-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .log-form textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+  }
+
+  .log-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .form-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .form-row select, .form-row input[type="number"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .form-row select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888aa' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+  }
+
+  select option {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .form-row select:focus, .form-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .btn {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+  }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid transparent;
+  }
+
+  .btn-danger:hover { background: rgba(224, 85, 85, 0.15); }
+
+  .quick-log-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .file-input-wrap {
+    position: relative;
+  }
+
+  .file-input-wrap input[type="file"] {
+    display: none;
+  }
+
+  .file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 12px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .file-label:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .file-preview {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .file-preview-item {
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .file-preview-item .remove-file {
+    cursor: pointer;
+    color: var(--danger);
+    font-weight: bold;
+  }
+
+  /* Entries list */
+  .entries-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color 0.15s;
+  }
+
+  .entry-card:hover {
+    border-color: var(--accent);
+  }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .entry-time {
+    font-size: 13px;
+    color: var(--text-dim);
+    min-width: 45px;
+  }
+
+  .entry-source {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .cat-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cat-dev { background: rgba(124,110,240,0.2); color: var(--cat-dev); }
+  .cat-meeting { background: rgba(224,144,64,0.2); color: var(--cat-meeting); }
+  .cat-review { background: rgba(80,184,208,0.2); color: var(--cat-review); }
+  .cat-planning { background: rgba(224,96,144,0.2); color: var(--cat-planning); }
+  .cat-other { background: rgba(136,136,136,0.2); color: var(--cat-other); }
+
+  .entry-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .entry-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .entry-card:hover .entry-actions {
+    opacity: 1;
+  }
+
+  .entry-actions button {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+
+  .entry-actions button:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .entry-actions button.delete-btn:hover {
+    color: var(--danger);
+  }
+
+  .entry-attachments {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .attachment-thumb {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .attachment-thumb img {
+    display: block;
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+  }
+
+  .attachment-thumb video {
+    display: block;
+    width: 120px;
+    height: 80px;
+    object-fit: cover;
+  }
+
+  .attachment-thumb .att-name {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 4px 6px;
+    background: var(--surface2);
+  }
+
+  .attachment-thumb .att-delete {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.7);
+    color: var(--danger);
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .attachment-thumb:hover .att-delete {
+    display: flex;
+  }
+
+  /* Edit modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 500px;
+    max-width: 90vw;
+  }
+
+  .modal h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .modal label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+
+  .modal textarea, .modal select, .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .modal select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888aa' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+  }
+
+  .modal textarea { min-height: 80px; resize: vertical; }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+
+  /* Lightbox */
+  .lightbox-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .lightbox-overlay.active {
+    display: flex;
+  }
+
+  .lightbox-overlay img, .lightbox-overlay video {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+  }
+
+  .day-separator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+  }
+
+  .day-separator span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .day-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 40px;
+    font-size: 14px;
+  }
+
+  /* Reminder bar */
+  .reminder-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .reminder-bar .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .reminder-bar .status-dot.on { background: var(--success); }
+  .reminder-bar .status-dot.off { background: var(--text-dim); }
+
+  .reminder-bar .reminder-label {
+    color: var(--text-dim);
+  }
+
+  .reminder-bar select, .reminder-bar input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .reminder-bar select option {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  .reminder-bar button {
+    padding: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .reminder-bar button:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .reminder-bar button.active-toggle {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .remind-input {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .remind-input input {
+    width: 55px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .remind-input input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Work Tracker</h1>
+  <div class="period-tabs">
+    <button data-period="all" class="active">All</button>
+    <button data-period="today">Today</button>
+    <button data-period="yesterday">Yesterday</button>
+    <button data-period="week">This Week</button>
+  </div>
+</header>
+
+<div class="main-content">
+  <div class="log-form">
+    <textarea id="logText" placeholder="What did you work on?" rows="2"></textarea>
+    <div class="form-row">
+      <select id="logCategory">
+        <option value="other">other</option>
+        <option value="dev">dev</option>
+        <option value="meeting">meeting</option>
+        <option value="review">review</option>
+        <option value="planning">planning</option>
+      </select>
+      <div class="remind-input">
+        <span>remind in</span>
+        <input type="number" id="logRemind" placeholder="min" min="1">
+      </div>
+      <div class="file-input-wrap">
+        <label class="file-label" for="logFiles">+ Attach</label>
+        <input type="file" id="logFiles" multiple accept="image/*,video/*">
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost quick-log-btn" onclick="quickLog('break')">Break</button>
+      <button class="btn btn-ghost quick-log-btn" onclick="quickLog('lunch')">Lunch</button>
+      <button class="btn btn-primary" id="logSubmit">Log Entry</button>
+    </div>
+    <div class="file-preview" id="filePreview"></div>
+  </div>
+
+  <div class="entries-list" id="entriesList">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<!-- Reminder Bar -->
+<div class="reminder-bar" id="reminderBar">
+  <span class="status-dot off" id="reminderDot"></span>
+  <span class="reminder-label" id="reminderLabel">Reminders off</span>
+  <select id="reminderInterval">
+    <option value="15">15 min</option>
+    <option value="30">30 min</option>
+    <option value="45">45 min</option>
+    <option value="60">1 hr</option>
+    <option value="90" selected>90 min</option>
+    <option value="120">2 hr</option>
+  </select>
+  <button id="reminderToggle" onclick="toggleReminder()">Enable</button>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>Edit Entry</h2>
+    <input type="hidden" id="editId">
+    <label>Text</label>
+    <textarea id="editText"></textarea>
+    <label>Category</label>
+    <select id="editCategory">
+      <option value="other">other</option>
+      <option value="dev">dev</option>
+      <option value="meeting">meeting</option>
+      <option value="review">review</option>
+      <option value="planning">planning</option>
+    </select>
+    <label>Add attachment</label>
+    <input type="file" id="editFile" multiple accept="image/*,video/*">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+</div>
+
+<script>
+const API = '';
+let currentPeriod = 'all';
+let selectedFiles = [];
+
+// Period tabs
+document.querySelectorAll('.period-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.period-tabs .active').classList.remove('active');
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    loadEntries();
+  });
+});
+
+// File selection preview
+document.getElementById('logFiles').addEventListener('change', (e) => {
+  for (const f of e.target.files) {
+    selectedFiles.push(f);
+  }
+  e.target.value = '';
+  renderFilePreview();
+});
+
+function renderFilePreview() {
+  const container = document.getElementById('filePreview');
+  container.innerHTML = '';
+  selectedFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'file-preview-item';
+    item.innerHTML = `${f.name} <span class="remove-file" onclick="removeFile(${i})">&times;</span>`;
+    container.appendChild(item);
+  });
+}
+
+function removeFile(i) {
+  selectedFiles.splice(i, 1);
+  renderFilePreview();
+}
+
+// Log entry
+document.getElementById('logSubmit').addEventListener('click', submitEntry);
+document.getElementById('logText').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submitEntry();
+});
+
+async function submitEntry() {
+  const text = document.getElementById('logText').value.trim();
+  if (!text) return;
+
+  const category = document.getElementById('logCategory').value;
+
+  try {
+    const res = await fetch(`${API}/api/entries`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        raw_text: text,
+        category,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('Failed to create entry:', res.status, err);
+      alert('Failed to log entry: ' + err);
+      return;
+    }
+
+    const data = await res.json();
+
+    // Upload attachments
+    for (const file of selectedFiles) {
+      const fd = new FormData();
+      fd.append('file', file);
+      await fetch(`${API}/api/entries/${data.id}/attachments`, { method: 'POST', body: fd });
+    }
+
+    // Schedule one-shot reminder if set
+    const remindMin = document.getElementById('logRemind').value;
+    if (remindMin) {
+      await fetch(`${API}/api/reminders/oneshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: parseInt(remindMin) }),
+      });
+    }
+
+    document.getElementById('logText').value = '';
+    document.getElementById('logRemind').value = '';
+    selectedFiles = [];
+    renderFilePreview();
+    loadEntries();
+  } catch (err) {
+    console.error('Error submitting entry:', err);
+    alert('Error: ' + err.message);
+  }
+}
+
+// Quick log (break/lunch)
+async function quickLog(type) {
+  await fetch(`${API}/api/entries`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw_text: type.charAt(0).toUpperCase() + type.slice(1), category: 'other' }),
+  });
+  loadEntries();
+}
+
+// Load entries
+async function loadEntries() {
+  let url = `${API}/api/entries?limit=100`;
+  if (currentPeriod !== 'all') {
+    const periodRes = await fetch(`${API}/api/periods/${currentPeriod}`);
+    const p = await periodRes.json();
+    url += `&start=${p.start}&end=${p.end}`;
+  }
+
+  const res = await fetch(url);
+  const entries = await res.json();
+  renderEntries(entries);
+}
+
+function formatTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
+
+function dayKey(iso) {
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  } catch { return iso; }
+}
+
+function formatDayLabel(iso) {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const entry = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = (today - entry) / 86400000;
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    return d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  } catch { return iso; }
+}
+
+function renderEntries(entries) {
+  const container = document.getElementById('entriesList');
+  if (!entries.length) {
+    container.innerHTML = '<div class="empty-state">No entries found. Log some work above!</div>';
+    return;
+  }
+
+  let lastDateKey = null;
+  let html = '';
+
+  for (const e of entries) {
+    const dateKey = dayKey(e.timestamp);
+    if (dateKey !== lastDateKey) {
+      html += `<div class="day-separator"><span>${formatDayLabel(e.timestamp)}</span></div>`;
+      lastDateKey = dateKey;
+    }
+
+    const time = formatTime(e.timestamp);
+    const cat = e.category || 'other';
+    const attachHtml = (e.attachments || []).map(a => renderAttachment(a)).join('');
+
+    html += `<div class="entry-card" data-id="${e.id}">
+      <div class="entry-header">
+        <span class="entry-time">${time}</span>
+        <span class="cat-badge cat-${cat}">${cat}</span>
+        <span class="entry-source">${e.source}</span>
+        <div class="entry-actions">
+          <button onclick="openEditModal('${e.id}')" title="Edit">edit</button>
+          <button onclick="attachToEntry('${e.id}')" title="Attach">+file</button>
+          <button class="delete-btn" onclick="deleteEntry('${e.id}')" title="Delete">delete</button>
+        </div>
+      </div>
+      <div class="entry-text">${escapeHtml(e.raw_text)}</div>
+      ${attachHtml ? `<div class="entry-attachments">${attachHtml}</div>` : ''}
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderAttachment(a) {
+  const isImage = a.mime_type && a.mime_type.startsWith('image/');
+  const isVideo = a.mime_type && a.mime_type.startsWith('video/');
+  const fileUrl = `${API}/api/attachments/${a.id}/file`;
+
+  if (isImage) {
+    return `<div class="attachment-thumb">
+      <img src="${fileUrl}" alt="${escapeHtml(a.filename)}" onclick="openLightbox('${fileUrl}', 'image')">
+      <button class="att-delete" onclick="event.stopPropagation();deleteAttachment('${a.id}')">&times;</button>
+    </div>`;
+  }
+  if (isVideo) {
+    return `<div class="attachment-thumb">
+      <video src="${fileUrl}" onclick="openLightbox('${fileUrl}', 'video')"></video>
+      <button class="att-delete" onclick="event.stopPropagation();deleteAttachment('${a.id}')">&times;</button>
+    </div>`;
+  }
+  return `<div class="attachment-thumb">
+    <div class="att-name">${escapeHtml(a.filename)}</div>
+    <button class="att-delete" onclick="event.stopPropagation();deleteAttachment('${a.id}')">&times;</button>
+  </div>`;
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// Delete entry
+async function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  await fetch(`${API}/api/entries/${id}`, { method: 'DELETE' });
+  loadEntries();
+}
+
+// Edit modal
+let allEntries = [];
+
+async function openEditModal(id) {
+  const res = await fetch(`${API}/api/entries?limit=500`);
+  allEntries = await res.json();
+  const entry = allEntries.find(e => e.id === id);
+  if (!entry) return;
+
+  document.getElementById('editId').value = id;
+  document.getElementById('editText').value = entry.raw_text;
+  document.getElementById('editCategory').value = entry.category || 'other';
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('active');
+}
+
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const data = {
+    raw_text: document.getElementById('editText').value,
+    category: document.getElementById('editCategory').value,
+  };
+
+  await fetch(`${API}/api/entries/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  // Upload any new attachments from modal
+  const fileInput = document.getElementById('editFile');
+  for (const file of fileInput.files) {
+    const fd = new FormData();
+    fd.append('file', file);
+    await fetch(`${API}/api/entries/${id}/attachments`, { method: 'POST', body: fd });
+  }
+  fileInput.value = '';
+
+  closeEditModal();
+  loadEntries();
+}
+
+// Attach to existing entry
+function attachToEntry(entryId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'image/*,video/*';
+  input.onchange = async () => {
+    for (const file of input.files) {
+      const fd = new FormData();
+      fd.append('file', file);
+      await fetch(`${API}/api/entries/${entryId}/attachments`, { method: 'POST', body: fd });
+    }
+    loadEntries();
+  };
+  input.click();
+}
+
+// Delete attachment
+async function deleteAttachment(attId) {
+  await fetch(`${API}/api/attachments/${attId}`, { method: 'DELETE' });
+  loadEntries();
+}
+
+// Lightbox
+function openLightbox(url, type) {
+  const lb = document.getElementById('lightbox');
+  if (type === 'image') {
+    lb.innerHTML = `<img src="${url}">`;
+  } else {
+    lb.innerHTML = `<video src="${url}" controls autoplay></video>`;
+  }
+  lb.classList.add('active');
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  lb.classList.remove('active');
+  lb.innerHTML = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeLightbox();
+    closeEditModal();
+  }
+});
+
+// --- Reminders ---
+
+async function loadReminderStatus() {
+  try {
+    const res = await fetch(`${API}/api/reminders/status`);
+    const data = await res.json();
+    const dot = document.getElementById('reminderDot');
+    const label = document.getElementById('reminderLabel');
+    const btn = document.getElementById('reminderToggle');
+
+    if (data.installed) {
+      dot.className = 'status-dot on';
+      label.textContent = 'Reminders active';
+      btn.textContent = 'Disable';
+      btn.classList.add('active-toggle');
+    } else {
+      dot.className = 'status-dot off';
+      label.textContent = 'Reminders off';
+      btn.textContent = 'Enable';
+      btn.classList.remove('active-toggle');
+    }
+  } catch (err) {
+    console.error('Failed to load reminder status:', err);
+  }
+}
+
+async function toggleReminder() {
+  const btn = document.getElementById('reminderToggle');
+  const isOn = btn.classList.contains('active-toggle');
+
+  if (isOn) {
+    await fetch(`${API}/api/reminders`, { method: 'DELETE' });
+  } else {
+    const interval = parseInt(document.getElementById('reminderInterval').value);
+    await fetch(`${API}/api/reminders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval_minutes: interval }),
+    });
+  }
+  loadReminderStatus();
+}
+
+document.getElementById('reminderInterval').addEventListener('change', async () => {
+  const btn = document.getElementById('reminderToggle');
+  if (btn.classList.contains('active-toggle')) {
+    // Re-install with new interval
+    const interval = parseInt(document.getElementById('reminderInterval').value);
+    await fetch(`${API}/api/reminders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval_minutes: interval }),
+    });
+    loadReminderStatus();
+  }
+});
+
+// Initial load
+loadEntries();
+loadReminderStatus();
+</script>
+</body>
+</html>
