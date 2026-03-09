@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6D28D9"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+
+    <radialGradient id="face" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#EDE9FE"/>
+      <stop offset="100%" stop-color="#DDD6FE"/>
+    </radialGradient>
+
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#3B0764" flood-opacity="0.45"/>
+    </filter>
+
+    <filter id="handShadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#4C1D95" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- App background (transparent) -->
+
+  <!-- Clock face -->
+  <circle cx="256" cy="264" r="178" fill="white" opacity="0.08" filter="url(#shadow)"/>
+  <circle cx="256" cy="264" r="172" fill="url(#face)"/>
+
+  <!-- Outer ring -->
+  <circle cx="256" cy="264" r="178" fill="none" stroke="#7C3AED" stroke-width="12"/>
+
+  <!-- Hour markers — 12 thick rectangles -->
+  <g fill="#7C3AED">
+    <!-- 12 --> <rect x="249" y="105" width="14" height="32" rx="7"/>
+    <!-- 1  --> <rect x="318.5" y="118.5" width="14" height="24" rx="7" transform="rotate(30 325.5 130.5)"/>
+    <!-- 2  --> <rect x="373" y="163" width="14" height="24" rx="7" transform="rotate(60 380 175)"/>
+    <!-- 3  --> <rect x="387" y="257" width="32" height="14" rx="7"/>
+    <!-- 4  --> <rect x="373" y="337" width="14" height="24" rx="7" transform="rotate(-60 380 349)"/>
+    <!-- 5  --> <rect x="320" y="381" width="14" height="24" rx="7" transform="rotate(-30 327 393)"/>
+    <!-- 6  --> <rect x="249" y="395" width="14" height="32" rx="7"/>
+    <!-- 7  --> <rect x="178" y="381" width="14" height="24" rx="7" transform="rotate(30 185 393)"/>
+    <!-- 8  --> <rect x="122" y="337" width="14" height="24" rx="7" transform="rotate(60 129 349)"/>
+    <!-- 9  --> <rect x="93" y="257" width="32" height="14" rx="7"/>
+    <!-- 10 --> <rect x="122" y="163" width="14" height="24" rx="7" transform="rotate(-60 129 175)"/>
+    <!-- 11 --> <rect x="178" y="118.5" width="14" height="24" rx="7" transform="rotate(-30 185 130.5)"/>
+  </g>
+
+  <!-- Hour hand — pointing to ~10 -->
+  <line x1="256" y1="264" x2="180" y2="178"
+        stroke="#5B21B6" stroke-width="16" stroke-linecap="round"
+        filter="url(#handShadow)"/>
+
+  <!-- Minute hand — pointing to ~2 -->
+  <line x1="256" y1="264" x2="318" y2="148"
+        stroke="#7C3AED" stroke-width="12" stroke-linecap="round"
+        filter="url(#handShadow)"/>
+
+  <!-- Center cap -->
+  <circle cx="256" cy="264" r="16" fill="#5B21B6"/>
+  <circle cx="256" cy="264" r="8" fill="#EDE9FE"/>
+
+  <!-- Crown stem -->
+  <rect x="248" y="86" width="16" height="20" rx="5" fill="#5B21B6"/>
+  <rect x="244" y="80" width="24" height="12" rx="6" fill="#7C3AED"/>
+</svg>

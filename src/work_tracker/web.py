@@ -215,6 +215,17 @@ def run_gui():
     import threading
     import webview
 
+    # Set GDK_BACKEND and program name so the dock matches our .desktop file
+    os.environ.setdefault("GDK_PROGRAM_CLASS", "work-tracker")
+    try:
+        import gi
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import GLib
+        GLib.set_prgname("work-tracker")
+        GLib.set_application_name("Work Tracker")
+    except Exception:
+        pass
+
     app = create_app()
 
     # Run Flask on a local port in a background thread
@@ -224,6 +235,7 @@ def run_gui():
     )
     server.start()
 
+    icon = os.path.join(os.path.dirname(__file__), "static", "icon.png")
     window = webview.create_window(
         "Work Tracker",
         "http://127.0.0.1:5213",
@@ -231,4 +243,4 @@ def run_gui():
         height=700,
         min_size=(600, 400),
     )
-    webview.start()
+    webview.start(icon=icon)
