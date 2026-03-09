@@ -39,8 +39,9 @@ def cli(ctx):
     help="Entry category.",
 )
 @click.option("--duration", "-d", type=int, default=None, help="Duration in minutes.")
+@click.option("--remind", "-r", type=int, default=None, help="Remind me again in N minutes.")
 @click.pass_context
-def log(ctx, text: tuple[str, ...], category: str | None, duration: int | None):
+def log(ctx, text: tuple[str, ...], category: str | None, duration: int | None, remind: int | None):
     """Log a work entry. Provide text inline or omit for interactive prompt."""
     cfg = ctx.obj["config"]
     raw = " ".join(text) if text else click.prompt("What did you work on?")
@@ -53,6 +54,11 @@ def log(ctx, text: tuple[str, ...], category: str | None, duration: int | None):
     entry = WorkEntry(raw_text=raw.strip(), category=cat, duration_minutes=duration)
     insert_entry(cfg["database_url"], entry)
     console.print(f"[green]Logged:[/green] {entry.raw_text} [dim][{cat}][/dim]")
+
+    if remind:
+        from work_tracker.scheduler import schedule_oneshot
+        schedule_oneshot(remind)
+        console.print(f"[dim]Reminder set for {remind} minutes.[/dim]")
 
 
 @cli.command()
@@ -165,6 +171,40 @@ def report(ctx, period: str, fmt: str):
     title = f"Work Report — {period.capitalize()}"
     md = render_report(items, title)
     console.print(md)
+
+
+@cli.command()
+@click.argument("action", type=click.Choice(["on", "off", "status", "notify", "fire-oneshot"]))
+@click.option("--interval", "-i", type=int, default=None, help="Reminder interval in minutes.")
+@click.pass_context
+def remind(ctx, action: str, interval: int | None):
+    """Manage work logging reminders. Actions: on, off, status, notify, fire-oneshot."""
+    from work_tracker.scheduler import (
+        install_reminder, remove_reminder, reminder_status,
+        send_notification, _fire_notification,
+    )
+
+    cfg = ctx.obj["config"]
+    mins = interval or cfg.get("reminder", {}).get("interval_minutes", 90)
+
+    if action == "on":
+        install_reminder(mins)
+        console.print(f"[green]Reminder installed:[/green] every {mins} minutes")
+    elif action == "off":
+        remove_reminder()
+        console.print("[green]Reminder removed.[/green]")
+    elif action == "status":
+        info = reminder_status()
+        if info["installed"]:
+            console.print(f"[green]Active:[/green] {info['cron_line']}")
+        else:
+            console.print("[dim]No reminder installed.[/dim]")
+    elif action == "notify":
+        sent = send_notification()
+        if not sent:
+            console.print("[dim]No notification needed (recent activity found).[/dim]")
+    elif action == "fire-oneshot":
+        _fire_notification("Time to log your work! Run: wt log")
 
 
 @cli.command("git-import")
